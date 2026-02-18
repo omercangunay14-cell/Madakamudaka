@@ -1154,4 +1154,44 @@ Fluent:Notify({
     Content = "Tüm sekmeler dolduruldu. Project-X v7 Aktif!",
     Duration = 5
 })
+-- [[ PROJECT-X FINAL UI BINDING - ARAYÜZÜ CANLANDIRAN KOD ]] --
+
+-- 1. FARM (ANA) SEKLESİ
+Tabs.Main:AddToggle("AutoFarm", {Title = "Otomatik Farm (Level)", Default = false}):OnChanged(function(v) getgenv().Config.AutoFarm = v end)
+Tabs.Main:AddToggle("ChestFarm", {Title = "Sandık Topla (Beli)", Default = false}):OnChanged(function(v) getgenv().Config.ChestFarm = v end)
+Tabs.Main:AddToggle("AutoQuest", {Title = "Otomatik Görev Al", Default = true}):OnChanged(function(v) getgenv().Config.AutoQuest = v end)
+
+-- 2. DÖVÜŞ (COMBAT) SEKLESİ
+Tabs.Combat:AddToggle("FastAttack", {Title = "Hızlı Saldırı (Fast Attack)", Default = false}):OnChanged(function(v) getgenv().Config.FastAttack = v end)
+Tabs.Combat:AddToggle("AutoHaki", {Title = "Otomatik Haki", Default = true}):OnChanged(function(v) getgenv().Config.AutoHaki = v end)
+Tabs.Combat:AddToggle("AutoElite", {Title = "Elite Hunter (Otomatik Boss)", Default = false}):OnChanged(function(v) getgenv().Config.AutoElite = v end)
+Tabs.Combat:AddToggle("BringMob", {Title = "Canavarları Çek (Bring Mob)", Default = false}):OnChanged(function(v) getgenv().Config.BringMob = v end)
+
+-- 3. STAT SEKLESİ
+local StatsList = {"Melee", "Defense", "Sword", "Gun", "Demon Fruit"}
+getgenv().Config.AutoStats = getgenv().Config.AutoStats or {}
+for _, stat in pairs(StatsList) do
+    Tabs.Stats:AddToggle("Stat"..stat, {Title = "Otomatik " .. stat, Default = false}):OnChanged(function(v)
+        getgenv().Config.AutoStats[stat] = v
+    end)
+end
+
+-- 4. EŞYA (ITEMS) SEKLESİ
+Tabs.Items:AddButton({Title = "Meyve Çevir (Gacha)", Callback = function() game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Cousin", "Buy") end})
+Tabs.Items:AddToggle("AutoStore", {Title = "Meyveleri Depola", Default = true}):OnChanged(function(v) getgenv().Config.AutoStore = v end)
+
+-- 5. AYARLAR (SETTINGS) SEKLESİ
+Tabs.Settings:AddButton({Title = "Sunucu Değiştir (Server Hop)", Callback = function() getgenv().ServerHop() end})
+Tabs.Settings:AddToggle("FPSBoost", {Title = "FPS Arttır (Beyaz Ekran)", Default = false}):OnChanged(function(v) 
+    getgenv().Config.WhiteScreen = v 
+    game:GetService("RunService"):Set3dRenderingEnabled(not v)
+end)
+Tabs.Settings:AddButton({Title = "Ayarları Kaydet", Callback = function() getgenv().SaveConfig() end})
+
+-- BAŞLATMA BİLDİRİMİ
+Fluent:Notify({
+    Title = "SİSTEM TAMAMLANDI",
+    Content = "Tüm sayfalar butonlarla dolduruldu. Project-X v7 Aktif!",
+    Duration = 10
+})
 
