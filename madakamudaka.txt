@@ -1103,3 +1103,15 @@ Fluent:Notify({
     Content = "Denizler arası geçiş, otomatik materyal farmı ve V4 Gear yönetimi aktif!",
     Duration = 10
 })
+-- [[ FINAL UI FILLER - SAYFALARI DOLDURAN KOD ]] --
+-- Dövüş Sekmesi
+Tabs.Combat:AddToggle("FastAttack", {Title = "Hızlı Saldırı", Default = false}):OnChanged(function(v) getgenv().Config.FastAttack = v end)
+Tabs.Combat:AddToggle("AutoHaki", {Title = "Otomatik Haki", Default = true}):OnChanged(function(v) getgenv().Config.AutoHaki = v end)
+
+-- Stat Sekmesi
+Tabs.Stats:AddToggle("Melee", {Title = "Melee (Yumruk)", Default = false}):OnChanged(function(v) getgenv().Config.AutoStats.Melee = v end)
+Tabs.Stats:AddToggle("Defense", {Title = "Defense (Can)", Default = false}):OnChanged(function(v) getgenv().Config.AutoStats.Defense = v end)
+
+-- Ayarlar Sekmesi
+Tabs.Settings:AddButton({Title = "Server Hop", Callback = function() getgenv().ServerHop() end})
+Tabs.Settings:AddToggle("WhiteScreen", {Title = "FPS Boost (Beyaz Ekran)", Default = false}):OnChanged(function(v) getgenv().Config.WhiteScreen = v end)
