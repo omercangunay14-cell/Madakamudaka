@@ -130,6 +130,91 @@ task.spawn(function()
         end
     end
 end)
+-- [[ PROJECT-X | BÖLÜM 4: TÜM DENİZLER NPC VERİ TABANI ]] --
+
+-- 1. DEVASA QUEST DATA (SEA 1, 2, 3)
+local QuestData = {
+    -- SEA 1 (Başlangıç ve Orta Seviyeler)
+    ["Bandit"] = {Level = 1, QuestName = "BanditQuest1", Name = "Bandit", NPC = "Bandit Recruiter", QIndex = 1},
+    ["Monkey"] = {Level = 15, QuestName = "MonkeyQuest1", Name = "Monkey", NPC = "Monkey Affiliates", QIndex = 1},
+    ["Gorilla"] = {Level = 20, QuestName = "GorillaQuest1", Name = "Gorilla", NPC = "Monkey Affiliates", QIndex = 2},
+    ["Pirate"] = {Level = 35, QuestName = "PirateQuest1", Name = "Pirate", NPC = "Pirate Adventurer", QIndex = 1},
+    ["Desert Bandit"] = {Level = 60, QuestName = "DesertQuest", Name = "Desert Bandit", NPC = "Desert Adventurer", QIndex = 1},
+    ["Snow Bandit"] = {Level = 90, QuestName = "SnowQuest", Name = "Snow Bandit", NPC = "Snow Adventurer", QIndex = 1},
+    ["Chief Petty Officer"] = {Level = 120, QuestName = "MarineQuest2", Name = "Chief Petty Officer", NPC = "Marine Commando", QIndex = 1},
+    ["Fishman"] = {Level = 250, QuestName = "FishmanQuest", Name = "Fishman", NPC = "Fishman Warrior", QIndex = 1},
+    ["Magma Village"] = {Level = 300, QuestName = "MagmaQuest", Name = "Military Soldier", NPC = "Magma Admiral", QIndex = 1},
+    
+    -- SEA 2 (Yeni Dünya)
+    ["Raider"] = {Level = 700, QuestName = "Area1Quest", Name = "Raider", NPC = "Quest Giver", QIndex = 1},
+    ["Swan Pirate"] = {Level = 775, QuestName = "Area2Quest", Name = "Swan Pirate", NPC = "Quest Giver", QIndex = 1},
+    ["Zombie"] = {Level = 950, QuestName = "ZombieQuest", Name = "Zombie", NPC = "Quest Giver", QIndex = 1},
+    ["Snow Trooper"] = {Level = 1000, QuestName = "SnowMountainQuest", Name = "Snow Trooper", NPC = "Quest Giver", QIndex = 1},
+    
+    -- SEA 3 (Son Dünya)
+    ["Pirate Millionaire"] = {Level = 1500, QuestName = "PiratePortQuest", Name = "Pirate Millionaire", NPC = "Quest Giver", QIndex = 1},
+    ["Pistol Billionaire"] = {Level = 1525, QuestName = "PiratePortQuest", Name = "Pistol Billionaire", NPC = "Quest Giver", QIndex = 2},
+    ["Coco Turtle"] = {Level = 1775, QuestName = "TurtleQuest", Name = "Coco Turtle", NPC = "Quest Giver", QIndex = 1},
+    ["Sun-Kissed Warrior"] = {Level = 1900, QuestName = "CandyQuest", Name = "Sun-Kissed Warrior", NPC = "Quest Giver", QIndex = 1}
+}
+
+-- 2. DİNAMİK GÖREV KONTROLÜ (NIGHT HUB LOGIC)
+local function CheckQuest()
+    local MyLevel = game.Players.LocalPlayer.Data.Level.Value
+    local TargetNPC = nil
+    local BestMatch = nil
+    local MaxLvl = -1
+
+    for _, v in pairs(QuestData) do
+        if MyLevel >= v.Level and v.Level > MaxLvl then
+            MaxLvl = v.Level
+            BestMatch = v
+        end
+    end
+    return BestMatch
+end
+
+-- 3. ANA FARM DÖNGÜSÜ (TÜM NPCLERİ KAPSAR)
+task.spawn(function()
+    while task.wait(0.5) do
+        if getgenv().Config and getgenv().Config.AutoFarm then
+            pcall(function()
+                local CurrentQuest = CheckQuest()
+                if not CurrentQuest then return end
+
+                -- EĞER GÖREV YOKSA NPC'YE GİT
+                if not game.Players.LocalPlayer.PlayerGui.Main.Quest.Visible then
+                    local QuestNPC = workspace.NPCs:FindFirstChild(CurrentQuest.NPC)
+                    if QuestNPC then
+                        TweenTo(QuestNPC.Head.CFrame)
+                        if (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - QuestNPC.Head.Position).Magnitude < 12 then
+                            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", CurrentQuest.QuestName, CurrentQuest.QIndex)
+                        end
+                    end
+                else
+                    -- EĞER GÖREV VARSA CANAVARA GİT
+                    local Enemy = workspace.Enemies:FindFirstChild(CurrentQuest.Name) or workspace.Enemies:FindFirstChild(CurrentQuest.Name:sub(1, -2))
+                    if Enemy and Enemy:FindFirstChild("Humanoid") and Enemy.Humanoid.Health > 0 then
+                        TweenTo(Enemy.HumanoidRootPart.CFrame * CFrame.new(0, getgenv().Config.MobDistance, 0))
+                        
+                        -- HIZLI SALDIRIYI TETİKLE
+                        if getgenv().Config.FastAttack then
+                            -- Blade Attack Remotes
+                            game:GetService("ReplicatedStorage").Remotes.Validator:FireServer(tick())
+                            game:GetService("ReplicatedStorage").Remotes.Attack:FireServer()
+                        end
+                    else
+                        -- Canavar Yoksa Spawn Bölgesine Git
+                        local EnemySpawns = workspace.EnemySpawns:FindFirstChild(CurrentQuest.Name)
+                        if EnemySpawns then
+                            TweenTo(EnemySpawns.CFrame)
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
 
 -- 6. UI TOGGLE EKLEME (Level Farm Sekmesi İçin)
 Tabs.Main:AddToggle("FarmToggle", {Title = "Otomatik Level Kas (Auto Farm)", Default = false}):OnChanged(function(v)
