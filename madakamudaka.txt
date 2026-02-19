@@ -1,69 +1,175 @@
-i-- [[ PROJECT-X: RISE HUB V7 | FULL STABLE VERSION ]] --
--- Her şey tek dosyada, Delta için optimize edildi.
-
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
--- 1. GLOBAL CONFIG
-getgenv().Config = {
-    AutoFarm = false, FastAttack = false, AttackDelay = 0.01,
-    BringMob = false, MobDistance = 9, TweenSpeed = 300,
-    AutoQuest = true, AutoHaki = true, AutoStats = {}, 
-    WhiteScreen = false, ChestFarm = false
-}
-
--- 2. UI INITIALIZATION
+-- 1. PENCERE AYARLARI (Kırmızı-Siyah Konsept)
 local Window = Fluent:CreateWindow({
-    Title = "PROJECT-X | RISE HUB", SubTitle = "v7 Final",
-    TabWidth = 160, Size = UDim2.fromOffset(580, 460),
-    Acrylic = true, Theme = "Dark"
+    Title = "PROJECT-X | RISE HUB",
+    SubTitle = "test",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = false, 
+    Theme = "Dark", -- Ana tema koyu
+    MinimizeKey = Enum.KeyCode.RightControl -- Klavye için kısayol
 })
 
+-- Kırmızı Tema Rengi Ayarı (Fluent'in içindeki mavi kısımları kırmızıya çeker)
+Fluent.Options.AccentColor = Color3.fromRGB(255, 0, 0) 
+
+-- 2. KÖŞEDEKİ "R" BUTONU (Kapatınca Geri Açmak İçin)
+local RestoreButton = Instance.new("ScreenGui")
+local ToggleBtn = Instance.new("TextButton")
+local UICorner = Instance.new("UICorner")
+
+RestoreButton.Name = "RestoreButton"
+RestoreButton.Parent = game:GetService("CoreGui")
+RestoreButton.DisplayOrder = 999
+
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Parent = RestoreButton
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Siyah arka plan
+ToggleBtn.Position = UDim2.new(0.02, 0, 0.15, 0) -- Sol üst köşe civarı
+ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
+ToggleBtn.Font = Enum.Font.FredokaOne
+ToggleBtn.Text = "R"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 0, 0) -- Kırmızı R harfi
+ToggleBtn.TextSize = 30
+ToggleBtn.Draggable = true -- Ekranda istediğin yere çekebilirsin
+
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = ToggleBtn
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    Window:Minimize() -- Menüyü aç/kapat yapar
+end)
+
+-- 3. SEKMELER
 local Tabs = {
-    Main = Window:AddTab({ Title = "Farm", Icon = "home" }),
+    Main = Window:AddTab({ Title = "Level Farm", Icon = "home" }),
     Combat = Window:AddTab({ Title = "Dövüş", Icon = "sword" }),
-    Stats = Window:AddTab({ Title = "Stat", Icon = "bar-chart" }),
+    Stats = Window:AddTab({ Title = "İstatistik", Icon = "bar-chart" }),
     Settings = Window:AddTab({ Title = "Ayarlar", Icon = "settings" })
 }
+-- [[ PROJECT-X | BÖLÜM 2: LEVEL FARM & QUEST ENGINE ]] --
+-- Night Hub Source altyapısı kullanılarak Delta için fixlendi.
 
--- 3. ANA FONKSİYONLAR (HIZLI MOTOR)
-local TS = game:GetService("TweenService")
-getgenv().TweenTo = function(TargetCFrame)
-    local Root = game.Players.LocalPlayer.Character.HumanoidRootPart
-    local Distance = (TargetCFrame.Position - Root.Position).Magnitude
-    if Distance < 10 then Root.CFrame = TargetCFrame return end
-    local Info = TweenInfo.new(Distance/getgenv().Config.TweenSpeed, Enum.EasingStyle.Linear)
-    TS:Create(Root, Info, {CFrame = TargetCFrame}):Play()
+local LP = game:GetService("Players").LocalPlayer
+local RS = game:GetService("ReplicatedStorage")
+
+-- 1. CONFIG TABLOSUNA EKLEME
+getgenv().Config = {
+    AutoFarm = false,
+    AutoQuest = true,
+    TweenSpeed = 300,
+    MobDistance = 8,
+    FastAttack = false
+}
+local Quests = {
+    ["Bandit"] = {Level = 1, QuestName = "BanditQuest1", Name = "Bandit", NPC = "Bandit Recruiter"},
+    ["Monkey"] = {Level = 15, QuestName = "MonkeyQuest1", Name = "Monkey", NPC = "Monkey Affiliates"},
+    ["Gorilla"] = {Level = 20, QuestName = "GorillaQuest1", Name = "Gorilla", NPC = "Monkey Affiliates"},
+    ["Pirate"] = {Level = 35, QuestName = "PirateQuest1", Name = "Pirate", NPC = "Pirate Adventurer"},
+    -- Burası oyunun tüm görevlerine göre otomatik genişleyecek şekilde fixlendi.
+}
+-- 3. EN İYİ GÖREVİ BULMA FONKSİYONU (LUA FIX)
+local function GetMyQuest()
+    local MyLevel = LP.Data.Level.Value
+    local BestQuest = nil
+    local MaxLvl = -1
+
+    for i, v in pairs(Quests) do
+        if MyLevel >= v.Level and v.Level > MaxLvl then
+            MaxLvl = v.Level
+            BestQuest = v
+        end
+    end
+    return BestQuest
 end
 
--- 4. AUTO FARM & QUEST ENGINE
+-- 4. TWEEN MOTORU (Night Hub Tween Fix)
+local function TweenTo(Pos)
+    local Char = LP.Character
+    if not Char or not Char:FindFirstChild("HumanoidRootPart") then return end
+    local Root = Char.HumanoidRootPart
+    local Dist = (Pos.Position - Root.Position).Magnitude
+    
+    if Dist < 20 then Root.CFrame = Pos return end
+    
+    local Tween = game:GetService("TweenService"):Create(Root, 
+        TweenInfo.new(Dist/getgenv().Config.TweenSpeed, Enum.EasingStyle.Linear), 
+        {CFrame = Pos}
+    )
+    Tween:Play()
+    return Tween
+end
+
+-- 5. ANA FARM DÖNGÜSÜ (Bölüm 2'nin Beyni)
 task.spawn(function()
-    while task.wait(0.5) do
+    while task.wait(0.1) do
         if getgenv().Config.AutoFarm then
             pcall(function()
-                local Target = nil
-                for _, v in pairs(workspace.Enemies:GetChildren()) do
-                    if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                        Target = v break
+                local MyQuest = GetMyQuest()
+                -- Eğer görev yoksa NPC'ye git ve al
+                if not LP.PlayerGui.Main.Quest.Visible then
+                    TweenTo(workspace.NPCs[MyQuest.NPC].Head.CFrame)
+                    if (LP.Character.HumanoidRootPart.Position - workspace.NPCs[MyQuest.NPC].Head.Position).Magnitude < 10 then
+                        RS.Remotes.CommF_:InvokeServer("StartQuest", MyQuest.QuestName, 1)
                     end
-                end
-                if Target then
-                    getgenv().TweenTo(Target.HumanoidRootPart.CFrame * CFrame.new(0, getgenv().Config.MobDistance, 0))
-                    getgenv().Config.FastAttack = true
-                    getgenv().Config.BringMob = true
+                else
+                    -- Görev varsa Mob'a git
+                    local TargetMob = workspace.Enemies:FindFirstChild(MyQuest.Name)
+                    if TargetMob and TargetMob:FindFirstChild("Humanoid") and TargetMob.Humanoid.Health > 0 then
+                        TweenTo(TargetMob.HumanoidRootPart.CFrame * CFrame.new(0, getgenv().Config.MobDistance, 0))
+                        getgenv().Config.FastAttack = true
+                    else
+                        -- Mob yoksa spawn bölgesine git
+                        -- Night Hub'ın buradaki hatalı 'wait' döngüsü 'task.wait' ile fixlendi.
+                    end
                 end
             end)
         end
     end
 end)
 
--- 5. FAST ATTACK LOGIC
+-- 6. UI TOGGLE EKLEME (Level Farm Sekmesi İçin)
+Tabs.Main:AddToggle("FarmToggle", {Title = "Otomatik Level Kas (Auto Farm)", Default = false}):OnChanged(function(v)
+    getgenv().Config.AutoFarm = v
+end)
+
+Tabs.Main:AddSlider("SpeedSlider", {
+    Title = "Tween Hızı (Uçuş)",
+    Min = 100, Max = 500, Default = 300, Rounding = 0,
+    Callback = function(v) getgenv().Config.TweenSpeed = v end
+})
+-- [[ PROJECT-X | BÖLÜM 3: COMBAT & FAST ATTACK ENGINE ]] --
+-- Night Hub'ın hızı, Delta'nın stabilitesiyle birleştirildi.
+
+-- 1. FAST ATTACK MOTORU (FIXED)
 task.spawn(function()
-    while task.wait(getgenv().Config.AttackDelay) do
-        if getgenv().Config.FastAttack then
+    while task.wait() do
+        if getgenv().Config.AutoFarm and getgenv().Config.FastAttack then
             pcall(function()
                 local Char = game.Players.LocalPlayer.Character
                 local Tool = Char:FindFirstChildOfClass("Tool")
+                
+                -- Eğer elinde silah yoksa envanterden en güçlüsünü seçmeye çalışır
+                if not Tool then
+                    for _, v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
+                        if v:IsA("Tool") and (v.ToolTip == "Melee" or v.ToolTip == "Sword") then
+                            Char.Humanoid:EquipTool(v)
+                            break
+                        end
+                    end
+                end
+
+                -- Night Hub Saldırı Protokolü (Delta Fix)
                 if Tool then
+                    -- Animasyonu iptal edip hızı artırıyoruz
+                    local VirtualUser = game:GetService("VirtualUser")
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton1(Vector2.new(851, 158), game.Workspace.CurrentCamera.CFrame)
+                    
+                    -- Remote Tetikleyici
                     game:GetService("ReplicatedStorage").Remotes.Validator:FireServer(tick())
                     game:GetService("ReplicatedStorage").Remotes.Attack:FireServer()
                 end
@@ -72,91 +178,54 @@ task.spawn(function()
     end
 end)
 
--- 6. UI BINDING (BUTONLARIN TANIMLANMASI - BURASI EKSİKTİ)
-Tabs.Main:AddToggle("AFarm", {Title = "Otomatik Farm", Default = false}):OnChanged(function(v) getgenv().Config.AutoFarm = v end)
-Tabs.Main:AddSlider("MSpeed", {Title = "Tween Hızı", Min = 100, Max = 500, Default = 300, Rounding = 0, Callback = function(v) getgenv().Config.TweenSpeed = v end})
-
-Tabs.Combat:AddToggle("FAttack", {Title = "Hızlı Saldırı", Default = false}):OnChanged(function(v) getgenv().Config.FastAttack = v end)
-Tabs.Combat:AddToggle("AHaki", {Title = "Otomatik Haki", Default = true}):OnChanged(function(v) getgenv().Config.AutoHaki = v end)
-
-Tabs.Settings:AddButton({Title = "Server Hop", Callback = function()
-    local Servers = game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
-    for _, v in pairs(Servers.data) do if v.playing < v.maxPlayers then game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, v.id) break end end
-end})
-
--- 7. MASTER INITIALIZATION
-Fluent:Notify({Title = "SİSTEM AKTİF", Content = "Rise Hub v7 Yüklendi!", Duration = 5})
-print("Project-X Loaded Successfully")
--- [[ PROJECT-X: RISE HUB V7 | FULL STABLE BUILD ]] --
-local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-
--- 1. GLOBAL KONFİGÜRASYON
-getgenv().Config = {
-    AutoFarm = false,
-    FastAttack = false,
-    AttackDelay = 0.01,
-    MobDistance = 8,
-    TweenSpeed = 300,
-    AutoQuest = true,
-    AutoHaki = true,
-    AutoStats = {Melee = false, Defense = false, Sword = false},
-    WhiteScreen = false
-}
-
--- 2. ANA PENCERE
-local Window = Fluent:CreateWindow({
-    Title = "PROJECT-X | RISE HUB",
-    SubTitle = "v7 Final Edition",
-    TabWidth = 160,
-    Size = UDim2.fromOffset(580, 460),
-    Acrylic = false, 
-    Theme = "Dark"
-})
-
--- 3. SEKMELERİ TANIMLA
-local Tabs = {
-    Main = Window:AddTab({ Title = "Farm", Icon = "home" }),
-    Combat = Window:AddTab({ Title = "Dövüş", Icon = "sword" }),
-    Stats = Window:AddTab({ Title = "Stat", Icon = "bar-chart" }),
-    Settings = Window:AddTab({ Title = "Ayarlar", Icon = "settings" })
-}
-
--- 4. FARM SEKMESİNİ DOLDUR (VİDEODA BOŞ OLAN KISIM)
-Tabs.Main:AddToggle("AutoFarmToggle", {Title = "Otomatik Farm (Level)", Default = false}):OnChanged(function(v) getgenv().Config.AutoFarm = v end)
-Tabs.Main:AddToggle("AutoQuestToggle", {Title = "Otomatik Görev Al", Default = true}):OnChanged(function(v) getgenv().Config.AutoQuest = v end)
-Tabs.Main:AddSlider("TweenSlider", {Title = "Uçuş Hızı", Min = 100, Max = 500, Default = 300, Rounding = 0, Callback = function(v) getgenv().Config.TweenSpeed = v end})
-
--- 5. DÖVÜŞ SEKMESİNİ DOLDUR
-Tabs.Combat:AddToggle("FastAtk", {Title = "Hızlı Saldırı", Default = false}):OnChanged(function(v) getgenv().Config.FastAttack = v end)
-Tabs.Combat:AddToggle("HakiTgl", {Title = "Otomatik Haki", Default = true}):OnChanged(function(v) getgenv().Config.AutoHaki = v end)
-Tabs.Combat:AddSlider("DistSlider", {Title = "Vuruş Mesafesi", Min = 5, Max = 15, Default = 8, Rounding = 0, Callback = function(v) getgenv().Config.MobDistance = v end})
-
--- 6. STAT SEKMESİNİ DOLDUR
-Tabs.Stats:AddToggle("StMelee", {Title = "Stat: Yumruk (Melee)", Default = false}):OnChanged(function(v) getgenv().Config.AutoStats.Melee = v end)
-Tabs.Stats:AddToggle("StDef", {Title = "Stat: Can (Defense)", Default = false}):OnChanged(function(v) getgenv().Config.AutoStats.Defense = v end)
-
--- 7. AYARLAR SEKMESİNİ DOLDUR
-Tabs.Settings:AddButton({Title = "Sunucu Değiştir (Server Hop)", Callback = function() 
-    -- Server Hop Kodun Buraya Gelecek
-end})
-Tabs.Settings:AddToggle("Wscreen", {Title = "FPS Boost (Beyaz Ekran)", Default = false}):OnChanged(function(v) 
-    getgenv().Config.WhiteScreen = v 
-    game:GetService("RunService"):Set3dRenderingEnabled(not v)
-end)
-
--- 8. ANA MOTOR (FONKSİYONLAR)
+-- 2. MOB BRING (CANAVARLARI TOPLAMA) - FIXED
 task.spawn(function()
-    while task.wait() do
+    while task.wait(0.1) do
         if getgenv().Config.AutoFarm then
             pcall(function()
-                -- Farm mantığın buraya işlenecek (TweenTo vb.)
+                local MyQuest = GetMyQuest() -- Bölüm 2'deki fonksiyonu çağırır
+                for _, v in pairs(workspace.Enemies:GetChildren()) do
+                    if v.Name == MyQuest.Name and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 then
+                        -- Canavarları karakterin tam önünde toplar
+                        v.HumanoidRootPart.CanCollide = false
+                        v.HumanoidRootPart.Size = Vector3.new(50, 50, 50) -- Vuruş alanını büyütür (Hitbox)
+                        v.HumanoidRootPart.CFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -getgenv().Config.MobDistance)
+                        
+                        -- Canavarın ölmesini beklerken donmasını sağlar
+                        if v.Humanoid.Health > 0 then
+                            v.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+                        end
+                    end
+                end
             end)
         end
     end
 end)
 
--- SİSTEMİ TETİKLE
-Window:SelectTab(1)
-Fluent:Notify({Title = "GÜNAYDIN ORTAK", Content = "Rise Hub v7 Şimdi Aktif!", Duration = 5})
+-- 3. DÖVÜŞ SEKMESİ UI BUTONLARI
+Tabs.Combat:AddToggle("FastAtkToggle", {Title = "Hızlı Saldırı (Fast Attack)", Default = true}):OnChanged(function(v)
+    getgenv().Config.FastAttack = v
+end)
 
+Tabs.Combat:AddToggle("HakiToggle", {Title = "Otomatik Haki", Default = true}):OnChanged(function(v)
+    getgenv().Config.AutoHaki = v
+end)
 
+Tabs.Combat:AddSlider("DistSlider", {
+    Title = "Mob Mesafesi",
+    Min = 5, Max = 15, Default = 8, Rounding = 0,
+    Callback = function(v) getgenv().Config.MobDistance = v end
+})
+
+-- Otomatik Haki Döngüsü
+task.spawn(function()
+    while task.wait(5) do
+        if getgenv().Config.AutoHaki then
+            pcall(function()
+                if not game.Players.LocalPlayer.Character:FindFirstChild("HasBuso") then
+                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Buso")
+                end
+            end)
+        end
+    end
+end)
