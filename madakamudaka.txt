@@ -1,4 +1,4 @@
--- [[ PROJECT-X: RISE HUB V7 | FULL STABLE VERSION ]] --
+i-- [[ PROJECT-X: RISE HUB V7 | FULL STABLE VERSION ]] --
 -- Her şey tek dosyada, Delta için optimize edildi.
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
@@ -87,4 +87,76 @@ end})
 -- 7. MASTER INITIALIZATION
 Fluent:Notify({Title = "SİSTEM AKTİF", Content = "Rise Hub v7 Yüklendi!", Duration = 5})
 print("Project-X Loaded Successfully")
+-- [[ PROJECT-X: RISE HUB V7 | FULL STABLE BUILD ]] --
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+
+-- 1. GLOBAL KONFİGÜRASYON
+getgenv().Config = {
+    AutoFarm = false,
+    FastAttack = false,
+    AttackDelay = 0.01,
+    MobDistance = 8,
+    TweenSpeed = 300,
+    AutoQuest = true,
+    AutoHaki = true,
+    AutoStats = {Melee = false, Defense = false, Sword = false},
+    WhiteScreen = false
+}
+
+-- 2. ANA PENCERE
+local Window = Fluent:CreateWindow({
+    Title = "PROJECT-X | RISE HUB",
+    SubTitle = "v7 Final Edition",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = false, 
+    Theme = "Dark"
+})
+
+-- 3. SEKMELERİ TANIMLA
+local Tabs = {
+    Main = Window:AddTab({ Title = "Farm", Icon = "home" }),
+    Combat = Window:AddTab({ Title = "Dövüş", Icon = "sword" }),
+    Stats = Window:AddTab({ Title = "Stat", Icon = "bar-chart" }),
+    Settings = Window:AddTab({ Title = "Ayarlar", Icon = "settings" })
+}
+
+-- 4. FARM SEKMESİNİ DOLDUR (VİDEODA BOŞ OLAN KISIM)
+Tabs.Main:AddToggle("AutoFarmToggle", {Title = "Otomatik Farm (Level)", Default = false}):OnChanged(function(v) getgenv().Config.AutoFarm = v end)
+Tabs.Main:AddToggle("AutoQuestToggle", {Title = "Otomatik Görev Al", Default = true}):OnChanged(function(v) getgenv().Config.AutoQuest = v end)
+Tabs.Main:AddSlider("TweenSlider", {Title = "Uçuş Hızı", Min = 100, Max = 500, Default = 300, Rounding = 0, Callback = function(v) getgenv().Config.TweenSpeed = v end})
+
+-- 5. DÖVÜŞ SEKMESİNİ DOLDUR
+Tabs.Combat:AddToggle("FastAtk", {Title = "Hızlı Saldırı", Default = false}):OnChanged(function(v) getgenv().Config.FastAttack = v end)
+Tabs.Combat:AddToggle("HakiTgl", {Title = "Otomatik Haki", Default = true}):OnChanged(function(v) getgenv().Config.AutoHaki = v end)
+Tabs.Combat:AddSlider("DistSlider", {Title = "Vuruş Mesafesi", Min = 5, Max = 15, Default = 8, Rounding = 0, Callback = function(v) getgenv().Config.MobDistance = v end})
+
+-- 6. STAT SEKMESİNİ DOLDUR
+Tabs.Stats:AddToggle("StMelee", {Title = "Stat: Yumruk (Melee)", Default = false}):OnChanged(function(v) getgenv().Config.AutoStats.Melee = v end)
+Tabs.Stats:AddToggle("StDef", {Title = "Stat: Can (Defense)", Default = false}):OnChanged(function(v) getgenv().Config.AutoStats.Defense = v end)
+
+-- 7. AYARLAR SEKMESİNİ DOLDUR
+Tabs.Settings:AddButton({Title = "Sunucu Değiştir (Server Hop)", Callback = function() 
+    -- Server Hop Kodun Buraya Gelecek
+end})
+Tabs.Settings:AddToggle("Wscreen", {Title = "FPS Boost (Beyaz Ekran)", Default = false}):OnChanged(function(v) 
+    getgenv().Config.WhiteScreen = v 
+    game:GetService("RunService"):Set3dRenderingEnabled(not v)
+end)
+
+-- 8. ANA MOTOR (FONKSİYONLAR)
+task.spawn(function()
+    while task.wait() do
+        if getgenv().Config.AutoFarm then
+            pcall(function()
+                -- Farm mantığın buraya işlenecek (TweenTo vb.)
+            end)
+        end
+    end
+end)
+
+-- SİSTEMİ TETİKLE
+Window:SelectTab(1)
+Fluent:Notify({Title = "GÜNAYDIN ORTAK", Content = "Rise Hub v7 Şimdi Aktif!", Duration = 5})
+
 
